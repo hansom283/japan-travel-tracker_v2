@@ -112,7 +112,7 @@ export default function App() {
   // State
   const [tab, setTab] = useState('home');
   const [expenses, setExpenses] = useState([]);
-  const [settings, setSettings] = useState({ exchangeRate: 0.22, dailyBudgetJpy: 10000 });
+  const [settings, setSettings] = useState({ exchangeRate: 0.22, dailyBudgetJpy: 10000, autoRate: true });
   const [isSyncing, setIsSyncing] = useState(false);
 
   // 👇 新增這兩行：用來記錄分析頁籤的篩選日期
@@ -136,6 +136,20 @@ export default function App() {
 
   // Initial Load & Cloud Fetch
   useEffect(() => {
+    if (settings.autoRate) {
+    fetch('https://open.er-api.com/v6/latest/JPY')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.rates?.TWD) {
+          // 取得最新匯率並保留到小數點後四位
+          const latestRate = Number(data.rates.TWD.toFixed(4));
+          setSettings(prev => ({ ...prev, exchangeRate: latestRate }));
+        }
+      })
+      .catch(err => console.error("匯率抓取失敗:", err));
+  }
+}, [settings.autoRate]); // 當開關切換時重新觸發
+        
     // 1. 先快速載入本機資料，讓畫面不要白屏
     const savedExpenses = localStorage.getItem('jp_records_v2');
     if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
@@ -549,13 +563,17 @@ export default function App() {
     <div className="p-4 pb-24 space-y-6 animate-in fade-in font-zen">
       <div className="bg-[#fffdf8] border border-[#d4c4a8] rounded-2xl p-5 mt-4">
         
-        <label className="block text-sm font-bold text-[#1a1209] mb-2">日圓匯率 (1 JPY = ? TWD)</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-bold text-[#1a1209]">日圓匯率 (1 JPY = ? TWD)</label>
+          <label className="flex items-center gap-1 text-[0.8rem] text-[#2980b9] font-bold cursor-pointer">
+            <input type="checkbox" checked={settings.autoRate} onChange={e => setSettings({...settings, autoRate: e.target.checked})} className="w-4 h-4" />
+            自動更新
+          </label>
+        </div>
         <input 
-          type="number" 
-          step="0.0001" 
-          value={settings.exchangeRate} 
+          type="number" step="0.0001" disabled={settings.autoRate} value={settings.exchangeRate} 
           onChange={e => setSettings({...settings, exchangeRate: parseFloat(e.target.value) || 0})} 
-          className="w-full p-3 border border-[#d4c4a8] rounded-xl bg-[#faf6ef] mb-6 focus:outline-none focus:border-[#d4a017]" 
+          className={`w-full p-3 border border-[#d4c4a8] rounded-xl mb-6 focus:outline-none focus:border-[#d4a017] ${settings.autoRate ? 'bg-[#f0e8d8] text-[#8c7b6b]' : 'bg-[#faf6ef]'}`} 
         />
 
         <label className="block text-sm font-bold text-[#1a1209] mb-2">每日預算 (日圓)</label>
