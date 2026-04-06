@@ -115,6 +115,10 @@ export default function App() {
   const [settings, setSettings] = useState({ exchangeRate: 0.22, dailyBudgetJpy: 10000 });
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // 👇 新增這兩行：用來記錄分析頁籤的篩選日期
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  
   // Quick Add Form State
   const [quickName, setQuickName] = useState('');
   const [quickAmount, setQuickAmount] = useState('');
@@ -442,9 +446,20 @@ export default function App() {
   );
 
   const renderAnalytics = () => {
+  // 👇 1. 先根據選擇的日期區間過濾資料
+    const filteredExpenses = expenses.filter(exp => {
+      if (filterStartDate && exp.date < filterStartDate) return false;
+      if (filterEndDate && exp.date > filterEndDate) return false;
+      return true;
+    });
+
+    // 👇 2. 計算過濾後的總金額
+    const filteredTotalJpy = filteredExpenses.reduce((sum, e) => sum + e.amountJpy, 0);
+
+    // 👇 3. 計算過濾後的分類佔比
     const categoryTotals = CATEGORIES.map(cat => ({
       ...cat,
-      amount: expenses.filter(e => e.category === cat.name).reduce((sum, e) => sum + e.amountJpy, 0)
+      amount: filteredExpenses.filter(e => e.category === cat.name).reduce((sum, e) => sum + e.amountJpy, 0)
     })).filter(c => c.amount > 0).sort((a, b) => b.amount - a.amount);
 
     let currentPct = 0;
@@ -457,11 +472,43 @@ export default function App() {
     }).join(', ');
 
     return (
-      <div className="p-4 pb-24 space-y-6 animate-in fade-in font-zen">
-        {totalJpy === 0 ? (
-          <div className="text-center text-[#8c7b6b] mt-20">暫無數據可分析</div>
+      <div className="p-4 pb-24 space-y-4 animate-in fade-in font-zen">
+        
+        {/* 👇 新增的日期區間篩選 UI */}
+        <div className="bg-[#fffdf8] p-4 rounded-2xl shadow-sm border border-[#d4c4a8] mt-4">
+          <h3 className="font-bold text-[#1a1209] mb-3 text-[0.9rem]">📅 選擇日期區間</h3>
+          <div className="flex items-center gap-2">
+            <input 
+              type="date" 
+              value={filterStartDate} 
+              onChange={e => setFilterStartDate(e.target.value)} 
+              className="w-full p-2 border border-[#d4c4a8] rounded-lg bg-[#faf6ef] focus:outline-none focus:border-[#d4a017] text-sm"
+            />
+            <span className="text-[#8c7b6b] font-bold">-</span>
+            <input 
+              type="date" 
+              value={filterEndDate} 
+              onChange={e => setFilterEndDate(e.target.value)} 
+              className="w-full p-2 border border-[#d4c4a8] rounded-lg bg-[#faf6ef] focus:outline-none focus:border-[#d4a017] text-sm"
+            />
+          </div>
+          {(filterStartDate || filterEndDate) && (
+            <button 
+              onClick={() => { setFilterStartDate(''); setFilterEndDate(''); }}
+              className="mt-3 w-full py-2 bg-[#f0e8d8] text-[#8c7b6b] rounded-lg text-sm font-bold active:scale-95 transition-transform"
+            >
+              清除區間 (顯示全部)
+            </button>
+          )}
+        </div>
+
+        {/* 顯示過濾後的圖表與數據 */}
+        {filteredTotalJpy === 0 ? (
+          <div className="text-center text-[#8c7b6b] mt-16 bg-[#fffdf8] p-6 rounded-2xl border border-[#d4c4a8]">
+            此區間暫無消費紀錄
+          </div>
         ) : (
-          <div className="bg-[#fffdf8] p-6 rounded-2xl shadow-sm border border-[#d4c4a8] mt-4">
+          <div className="bg-[#fffdf8] p-6 rounded-2xl shadow-sm border border-[#d4c4a8]">
             <h3 className="font-bold text-[#1a1209] mb-8 text-center text-lg">消費類別佔比</h3>
             
             <div className="flex justify-center mb-8">
@@ -471,8 +518,8 @@ export default function App() {
               >
                 <div className="absolute inset-4 bg-[#fffdf8] rounded-full flex items-center justify-center shadow-sm">
                   <div className="text-center">
-                    <p className="text-xs text-[#8c7b6b]">總計</p>
-                    <p className="font-mincho font-bold text-[#1a1209] text-sm mt-1">¥{formatCurrency(totalJpy)}</p>
+                    <p className="text-xs text-[#8c7b6b]">區間總計</p>
+                    <p className="font-mincho font-bold text-[#1a1209] text-sm mt-1">¥{formatCurrency(filteredTotalJpy)}</p>
                   </div>
                 </div>
               </div>
@@ -487,7 +534,7 @@ export default function App() {
                   </div>
                   <div className="flex gap-4">
                     <span className="font-bold text-[#1a1209]">¥{formatCurrency(cat.amount)}</span>
-                    <span className="text-[#8c7b6b] w-10 text-right text-xs pt-0.5">{Math.round((cat.amount/totalJpy)*100)}%</span>
+                    <span className="text-[#8c7b6b] w-10 text-right text-xs pt-0.5">{Math.round((cat.amount/filteredTotalJpy)*100)}%</span>
                   </div>
                 </div>
               ))}
