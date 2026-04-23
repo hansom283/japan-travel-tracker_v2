@@ -31,9 +31,8 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8i1yb03bpXqpEp9HEp
 
 // --- Gemini API 辨識邏輯 ---
 const analyzeReceiptWithGemini = async (base64Image, mimeType) => {
-  // 🌟 請將您的 API Key 字串貼在下方的引號內（解決 Vercel 部署時的錯誤）
+  // 🌟 請將您的 API Key 字串貼在下方的引號內
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
-  // 若遇到 404 錯誤，可將模型名稱換成 gemini-2.0-flash 或 gemini-1.5-flash
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   const payload = {
@@ -104,11 +103,9 @@ export default function App() {
   const [settings, setSettings] = useState({ exchangeRate: 0.22, dailyBudgetJpy: 10000, autoRate: true });
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // 日期區間篩選狀態
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
   
-  // 手動輸入狀態
   const [quickName, setQuickName] = useState('');
   const [quickAmount, setQuickAmount] = useState('');
   const [quickCat, setQuickCat] = useState('餐飲');
@@ -173,7 +170,6 @@ export default function App() {
     localStorage.setItem('jp_settings_v4', JSON.stringify(settings));
   }, [expenses, settings]);
 
-  // 計算資料
   const totalJpy = expenses.reduce((sum, exp) => sum + exp.amountJpy, 0);
   const totalTwd = totalJpy * settings.exchangeRate;
   
@@ -187,7 +183,6 @@ export default function App() {
     }, {});
   }, [sortedExpenses]);
 
-  // 同步到 Apps Script 輔助函數
   const syncToCloud = async (payload) => {
     if (!SCRIPT_URL) return;
     setIsSyncing(true);
@@ -204,7 +199,6 @@ export default function App() {
     }
   };
 
-  // 操作邏輯
   const handleQuickAdd = () => {
     if (!quickName || !quickAmount) return alert('請填寫名稱與金額');
     const newExp = {
@@ -298,9 +292,9 @@ export default function App() {
   };
 
   // --- 分頁渲染區塊 ---
-
+  // 💡 修改點：移除了 pb-24，改用較小的 pb-6 以免產生不必要的底部空白
   const renderHome = () => (
-    <div className="p-4 pb-24 space-y-4 animate-in fade-in font-zen">
+    <div className="p-4 pb-6 space-y-4 animate-in fade-in font-zen">
       <div className="grid grid-cols-2 gap-3 mb-2">
         <div className="bg-[#fffdf8] border border-[#d4c4a8] border-l-4 border-l-[#c0392b] rounded-xl p-4 shadow-sm">
           <div className="text-[0.7rem] text-[#c0392b] font-bold mb-1">總花費 JPY</div>
@@ -356,7 +350,7 @@ export default function App() {
   );
 
   const renderList = () => (
-    <div className="p-4 pb-24 space-y-2 animate-in fade-in font-zen">
+    <div className="p-4 pb-6 space-y-2 animate-in fade-in font-zen">
       {Object.keys(expensesByDate).length === 0 ? (
         <div className="text-center text-[#8c7b6b] mt-20">尚無記帳紀錄</div>
       ) : (
@@ -400,7 +394,6 @@ export default function App() {
   );
 
   const renderAnalytics = () => {
-    // 1. 篩選日期區間資料
     const filteredExpenses = expenses.filter(exp => {
       if (filterStartDate && exp.date < filterStartDate) return false;
       if (filterEndDate && exp.date > filterEndDate) return false;
@@ -424,7 +417,7 @@ export default function App() {
     }).join(', ');
 
     return (
-      <div className="p-4 pb-24 space-y-4 animate-in fade-in font-zen">
+      <div className="p-4 pb-6 space-y-4 animate-in fade-in font-zen">
         <div className="bg-[#fffdf8] p-4 rounded-2xl shadow-sm border border-[#d4c4a8] mt-4">
           <h3 className="font-bold text-[#1a1209] mb-3 text-[0.9rem]">📅 選擇日期區間</h3>
           <div className="flex items-center gap-2">
@@ -475,7 +468,7 @@ export default function App() {
   };
 
   const renderSettings = () => (
-    <div className="p-4 pb-24 space-y-6 animate-in fade-in font-zen">
+    <div className="p-4 pb-6 space-y-6 animate-in fade-in font-zen">
       <div className="bg-[#fffdf8] border border-[#d4c4a8] rounded-2xl p-5 mt-4">
         
         <div className="flex items-center justify-between mb-2">
@@ -501,7 +494,8 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#faf6ef] font-sans text-[#1a1209] max-w-md mx-auto relative shadow-2xl overflow-hidden">
+    // 💡 關鍵排版修正：使用 flex flex-col 搭配 h-[100dvh]，確保完美填滿螢幕並正確計算 WebView 高度
+    <div className="flex flex-col h-screen h-[100dvh] bg-[#faf6ef] font-sans text-[#1a1209] w-full max-w-md mx-auto relative shadow-2xl overflow-hidden">
       
       {/* 載入外部字體 */}
       <style dangerouslySetInnerHTML={{__html: `
@@ -514,35 +508,36 @@ export default function App() {
       {/* 隱藏的相機上傳按鈕 */}
       <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
 
-      {/* 主要內容區 */}
-      <div className="h-screen overflow-y-auto custom-scrollbar">
-        <header className="sticky top-0 bg-[#1a1209] text-[#faf6ef] z-10 px-5 py-4 flex justify-between items-center shadow-md">
-          <div className="flex items-center gap-2">
-            <span className="text-[1.3rem]">⛩️</span>
-            <h1 className="text-[1.15rem] font-mincho font-semibold tracking-wide mt-1">旅費帳本 雲端版</h1>
+      {/* Header - 💡 使用 shrink-0 防止被壓縮 */}
+      <header className="shrink-0 bg-[#1a1209] text-[#faf6ef] z-10 px-5 py-4 flex justify-between items-center shadow-md">
+        <div className="flex items-center gap-2">
+          <span className="text-[1.3rem]">⛩️</span>
+          <h1 className="text-[1.15rem] font-mincho font-semibold tracking-wide mt-1">旅費帳本 雲端版</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          {isSyncing ? (
+            <span className="text-[#d4a017] text-[0.7rem] font-bold font-zen animate-pulse">⏳ 同步中</span>
+          ) : SCRIPT_URL ? (
+            <span className="text-[#27ae60] text-[0.7rem] font-bold font-zen">☁️ 雲端</span>
+          ) : (
+            <span className="text-[#8c7b6b] text-[0.7rem] font-bold font-zen">📱 本機</span>
+          )}
+          <div className="text-[#d4a017] text-[0.85rem] font-bold font-zen flex items-center gap-1">
+            {settings.autoRate && <span className="text-[0.6rem]">⚡</span>} 💴 {settings.exchangeRate}
           </div>
-          <div className="flex items-center gap-3">
-            {isSyncing ? (
-              <span className="text-[#d4a017] text-[0.7rem] font-bold font-zen animate-pulse">⏳ 同步中</span>
-            ) : SCRIPT_URL ? (
-              <span className="text-[#27ae60] text-[0.7rem] font-bold font-zen">☁️ 雲端</span>
-            ) : (
-              <span className="text-[#8c7b6b] text-[0.7rem] font-bold font-zen">📱 本機</span>
-            )}
-            <div className="text-[#d4a017] text-[0.85rem] font-bold font-zen flex items-center gap-1">
-              {settings.autoRate && <span className="text-[0.6rem]">⚡</span>} 💴 {settings.exchangeRate}
-            </div>
-          </div>
-        </header>
+        </div>
+      </header>
 
+      {/* 主要內容區 - 💡 使用 flex-1 自動填滿剩餘高度並負責滾動，移除 h-screen */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
         {tab === 'home' && renderHome()}
         {tab === 'list' && renderList()}
         {tab === 'analytics' && renderAnalytics()}
         {tab === 'settings' && renderSettings()}
       </div>
 
-      {/* 底部導覽列 */}
-      <nav className="absolute bottom-0 w-full bg-[#1a1209] flex z-20 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+      {/* 底部導覽列 - 💡 移除 absolute bottom-0，改為 flex item 自然墊底 */}
+      <nav className="shrink-0 w-full bg-[#1a1209] flex z-20 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.1)] relative">
         <NavItem icon="🏠" label="首頁" active={tab === 'home'} onClick={() => setTab('home')} />
         <NavItem icon="📋" label="明細" active={tab === 'list'} onClick={() => setTab('list')} />
         <NavItem icon="📊" label="分析" active={tab === 'analytics'} onClick={() => setTab('analytics')} />
